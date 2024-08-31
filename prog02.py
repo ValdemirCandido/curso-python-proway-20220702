@@ -1,30 +1,91 @@
-# dune2R /lars - 2012
-# parametric functions into blocrson the z-axis
 
+import csv
+import sqlite3
 
+if __name__ == "__main__":
 
-import bpy
-from math import*
+    connection_string = "db.sqlite3"
+    connection = sqlite3.connect(connection_string)
+    cursor = connection.cursor()
 
-rows = 25  #amount of boxes, don 't go too high
-stps = 2 / rows
+    comando = "DROP TABLE IF EXISTS tb_cursos;"
+    cursor.execute(comando)
 
-x = 0
-y = 0
-
-for y in range(1, rows):
+    comando = """
+        CREATE TABLE IF NOT EXISTS tb_cursos(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            curso TEXT NOT NULL,
+            carga_horaria INTEGER NOT NULL,
+            preco REAL not null
+        );
+"""
+    cursor.execute(comando)
     
-    for x in range(1, rows):
-        
-        # ## setting up box stuff
-        bpy.ops.mesh.primitive_cube_add(location=(x * steps, y * steps., 0))
-        bpy.context.scene.cursor_location = bpy.context.active_object.location
-        bpy.context.scene.cursor_location.z -= 1
-        bpy.ops.object.origin_set(type='origin_cursor')
-        
-        # ## determining boxes
-        bpy.context.active_object.scale.x = steps / 2  # change for space between cubes
-        bpy.context.active_object.scale.x = steps / 2
-        
-        # # the formulo:
-        bpy.context.active_object.scale.z = (-(x * Steps) ** 3 - (y * Steps) ** 3 + 20) * .1
+    with open("cursos.csv", "r", encoding="utf-8") as arquivo:
+
+        arquivo_csv = csv.DictReader(arquivo, delimiter=';')
+
+        for linha in arquivo_csv:
+            comando = "INSERT INTO tb_cursos(curso, carga_horaria, preco) VALUES ('{}', {}, {});".format(
+                linha.get("curso"),
+                int(linha.get("carga_horaria")),
+                float(linha.get("preco"))
+            )
+            cursor.execute(comando)
+
+        connection.commit()
+
+    # 1º método
+    comando = "SELECT * FROM tb_cursos"
+    result = cursor.execute(comando).fetchall()
+
+    qtd_cursos = len(result)
+    curso_maior_carga_horaria = sorted(result, key=lambda item: item[2], reverse=True)[0]
+    curso_com_maior_valor = sorted(result, key=lambda item: item[3], reverse=True)[0]
+
+    print(f"Quantidade de cursos: {qtd_cursos}")
+    print("Curso com a maior carga horária: {} ({}hs)".format(
+        curso_maior_carga_horaria[1],
+        curso_maior_carga_horaria[2]
+    ))
+    print("Curso com o maior valor: {} ({}hs)".format(
+        curso_com_maior_valor[1],
+        curso_com_maior_valor[3]
+    ))
+
+    print('*'*50)
+
+    # 2º Método
+    comando = "SELECT COUNT(id) FROM tb_cursos;"
+    result = cursor.execute(comando).fetchone()
+    qtd_cursos = result[0]
+    print(f"Quantidade de cursos: {qtd_cursos}")
+
+    comando = "SELECT * FROM tb_cursos ORDER BY carga_horaria DESC;"
+    curso_maior_carga_horaria = cursor.execute(comando).fetchone()
+    print("Curso com a maior carga horária: {} ({}hs)".format(
+        curso_maior_carga_horaria[1],
+        curso_maior_carga_horaria[2]
+    ))
+
+    comando = "SELECT * FROM tb_cursos ORDER BY preco DESC;"
+    curso_com_maior_valor = cursor.execute(comando).fetchone()
+    print("Curso com o maior preço: {} ({}hs)".format(
+        curso_com_maior_valor[1],
+        curso_com_maior_valor[3]
+    ))
+
+    cursor.close()
+    connection.close()
+
+
+
+
+
+
+
+
+
+
+
+
